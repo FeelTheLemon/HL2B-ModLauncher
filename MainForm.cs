@@ -18,28 +18,8 @@ namespace ModLauncher
 {
 	public partial class MainForm : Form
 	{
-		public const int WM_NCLBUTTONDOWN = 0xA1;
-		public const int HTCAPTION = 0x2;
-		[DllImport("User32.dll")]
-		public static extern bool ReleaseCapture();
-		[DllImport("User32.dll")]
-		public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
-
-		// Define the CS_DROPSHADOW constant
-		private const int CS_DROPSHADOW = 0x00020000;
-		// Override the CreateParams property
-		protected override CreateParams CreateParams
-		{
-			get
-			{
-				CreateParams cp = base.CreateParams;
-				cp.ClassStyle |= CS_DROPSHADOW;
-				return cp;
-			}
-		}
-
 #if DEBUG
-		public static string gamePath = @"D:\AHL2_R";
+		public static string gamePath = @"D:\Games\HL2Leak\AHL2_R";
 #else
 		public static string gamePath = Directory.GetCurrentDirectory();
 #endif
@@ -53,26 +33,6 @@ namespace ModLauncher
 		{
 			InitializeComponent();
 		}
-
-		private void close_Click(object sender, EventArgs e)
-		{
-			SaveAdditionalParameters();
-			this.Close();
-		}
-
-		private void minimize_Click(object sender, EventArgs e)
-		{
-			this.WindowState = FormWindowState.Minimized;
-		}
-
-		private void move_MouseDown(object sender, MouseEventArgs e)
-		{
-			if (e.Button == MouseButtons.Left)
-			{
-				ReleaseCapture();
-				SendMessage(Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
-			}
-        }
 
 		public static bool isModDirectory(string path)
 		{
@@ -238,7 +198,20 @@ namespace ModLauncher
 			modList.Items.Clear();
 			mods.Clear();
 
-			foreach (string dir in Directory.GetDirectories(gamePath))
+			if (!Directory.Exists(gamePath))
+			{
+				MessageBox.Show("This folder doesn't exist", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+
+			string[] gamefolders = Directory.GetDirectories(gamePath);
+			if (gamefolders.Length <= 0)
+			{
+				MessageBox.Show("This folder doesn't have any detectable mod folders", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+
+			foreach (string dir in gamefolders)
 			{
 				if (isModDirectory(dir))
 				{
@@ -350,8 +323,9 @@ namespace ModLauncher
 			lblGamePath.Text = "Game: " + gamePath;
 		}
 
-		private void SaveAdditionalParameters()
+		public void SaveAdditionalParameters()
 		{
+			Console.WriteLine("Carefully closing an application...");
 		//	setRegistryValue("GameParameters", gameParametersText.Text);
 		//	setRegistryValue("ServerParameters", srvParametersText.Text);
 
@@ -370,10 +344,10 @@ namespace ModLauncher
 	//	private bool isExtended = false;
 		private void MainForm_Shown(object sender, EventArgs e)
 		{
-			//	this.Height = 140;
+		//	this.Height = 140;
 
-			//	gameParametersText.Text = getRegistryValue(getRegistryMainPath(), "GameParameters");
-			//	srvParametersText.Text = getRegistryValue(getRegistryMainPath(), "ServerParameters");
+		//	gameParametersText.Text = getRegistryValue(getRegistryMainPath(), "GameParameters");
+		//	srvParametersText.Text = getRegistryValue(getRegistryMainPath(), "ServerParameters");
 
 			if (mods.Count <= 0) return; //prevents System.ArgumentOutOfRangeException if no mods exist
 
@@ -410,25 +384,11 @@ namespace ModLauncher
 		}
 		*/
 
-		private void parametersText_Leave(object sender, EventArgs e)
-		{
-		//	mods[modList.SelectedIndex].Parameters = gameParametersText.Text;
-			// Saving parameters into registry
-			SaveAdditionalParameters();
-		}
-
-		private void srvParametersText_Leave(object sender, EventArgs e)
-		{
-		//	mods[modList.SelectedIndex].ServerParameters = srvParametersText.Text;
-			// Saving parameters into registry
-			SaveAdditionalParameters();
-		}
-
 		private void startProcess(string name)
 		{
 			if (mods.Count <= 0) return; //prevents System.ArgumentOutOfRangeException if no mods exist and user press run
 
-			//	string choosedMod = modList.SelectedItem.ToString();
+		//	string choosedMod = modList.SelectedItem.ToString();
 			string choosedMod = mods[modList.SelectedIndex].Dir;
 			Console.WriteLine("Trying to run " + choosedMod);
 
@@ -564,26 +524,32 @@ namespace ModLauncher
 			RefreshMapLists();
 		}
 
-		private void gameParametersText_TextChanged(object sender, EventArgs e)
-		{
-			mods[modList.SelectedIndex].Parameters = gameparams.gameParametersText.Text;
-		}
-
-		private void srvParametersText_TextChanged(object sender, EventArgs e)
-		{
-			mods[modList.SelectedIndex].ServerParameters = gameparams.srvParametersText.Text;
-		}
-
 		private void button1_Click(object sender, EventArgs e)
 		{
 		//	gameparams.ShowDialog();
-			if (gameparams == null)
+			if (gameparams == null || gameparams.IsDisposed)
 				gameparams = new frmParameters(this);
 
 			if (!gameparams.Visible)
 				gameparams.Show();
 			else
 				gameparams.Focus();
+		}
+
+		private void quitToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+		//	SaveAdditionalParameters();
+			this.Close();
+		}
+
+		private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+		{
+			SaveAdditionalParameters();
+		}
+
+		private void btnRefreshMods_Click(object sender, EventArgs e)
+		{
+			RefreshModList();
 		}
 	}
 }
